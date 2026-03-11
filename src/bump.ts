@@ -26,7 +26,7 @@ export const bump = (root: string, target: string) => {
     throw new Error(`No "branch" field in app.json for ${app.name}. Add one to enable bumping.`);
   }
 
-  const cloneDir = path.join(app.dir, ".app");
+  const cloneDir = path.join(app.dir, "app");
 
   if (!existsSync(cloneDir)) {
     throw new Error(`No local clone found. Run 'pillra clone ${target}' first.`);
@@ -43,7 +43,7 @@ export const bump = (root: string, target: string) => {
 
   console.log(`  ${app.config.commit.slice(0, 8)} → ${latestCommit.slice(0, 8)}`);
 
-  const editDir = path.join(app.dir, ".app-edit");
+  const editDir = path.join(app.dir, "app-edit");
 
   if (existsSync(editDir)) {
     console.log("Cleaning up previous edit session…");

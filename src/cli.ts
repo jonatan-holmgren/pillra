@@ -10,22 +10,22 @@ pillra - maintain patches on top of pinned upstream git repos
 Usage:
   pillra init <app>    Scaffold a new app directory with a template app.json
   pillra clone [app]   Clone upstream and apply patches (all apps, or one by name)
-  pillra apply [app]   Re-apply patches to existing .app/ (e.g. after pulling updated patches)
-  pillra edit <app>    Prepare an edit session in .app-edit/
-  pillra save <app>    Finalize patches from .app-edit/ and clean up
+  pillra apply [app]   Re-apply patches to existing app/ (e.g. after pulling updated patches)
+  pillra edit <app>    Prepare an edit session in app-edit/
+  pillra save <app>    Finalize patches from app-edit/ and clean up
   pillra bump <app>    Advance pinned commit to latest upstream and re-apply patches
 
 Typical workflow:
   pillra init myapp    # creates myapp/app.json
   # fill in repo and commit in myapp/app.json
-  pillra clone myapp   # one-time clone to .app/
+  pillra clone myapp   # one-time clone to app/
   pillra apply myapp   # re-apply patches after pulling teammate changes
-  pillra edit myapp    # sets up .app-edit/ with patches as commits
-  # make changes and git commit in .app-edit/
-  pillra save myapp    # regenerates patch files, removes .app-edit/
-  pillra bump myapp    # fetch new upstream commit, re-apply patches to .app-edit/
-  # resolve any conflicts in .app-edit/, then:
-  pillra save myapp    # regenerates patch files, removes .app-edit/
+  pillra edit myapp    # sets up app-edit/ with patches as commits
+  # make changes and git commit in app-edit/
+  pillra save myapp    # regenerates patch files, removes app-edit/
+  pillra bump myapp    # fetch new upstream commit, re-apply patches to app-edit/
+  # resolve any conflicts in app-edit/, then:
+  pillra save myapp    # regenerates patch files, removes app-edit/
 
 Each app is a directory containing an app.json:
   {

@@ -37,7 +37,7 @@ export const apply = (root: string, target?: string) => {
   if (apps.length === 0) throw new Error("No apps found.");
 
   for (const app of apps) {
-    const cloneDir = path.join(app.dir, ".app");
+    const cloneDir = path.join(app.dir, "app");
 
     console.log(`\n▶ ${app.name}`);
 
@@ -76,16 +76,16 @@ export const clone = (root: string, target?: string) => {
   if (apps.length === 0) throw new Error("No apps found.");
 
   for (const app of apps) {
-    const cloneDir = path.join(app.dir, ".app");
+    const cloneDir = path.join(app.dir, "app");
 
     console.log(`\n▶ ${app.name}`);
 
     if (existsSync(cloneDir)) {
-      console.log("  Already cloned — delete .app/ to re-clone.");
+      console.log("  Already cloned — delete app/ to re-clone.");
     }
     else {
       console.log(`  Cloning ${app.config.repo} @ ${app.config.commit.slice(0, 8)}…`);
-      run(`git clone --filter=blob:none --no-checkout ${app.config.repo} .app`, app.dir);
+      run(`git clone --filter=blob:none --no-checkout ${app.config.repo} app`, app.dir);
       run(`git checkout ${app.config.commit}`, cloneDir);
     }
 

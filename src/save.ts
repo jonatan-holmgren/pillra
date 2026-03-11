@@ -11,8 +11,8 @@ export const save = (root: string, target: string) => {
 
   if (!app) throw new Error(`No app.json found in: ${appDir}`);
 
-  const cloneDir = path.join(app.dir, ".app");
-  const editDir = path.join(app.dir, ".app-edit");
+  const cloneDir = path.join(app.dir, "app");
+  const editDir = path.join(app.dir, "app-edit");
 
   if (!existsSync(editDir)) {
     throw new Error(`No edit session found. Run 'pillra edit ${target}' first.`);
