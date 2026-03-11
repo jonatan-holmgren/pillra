@@ -19,35 +19,64 @@ my-project/
 ## Install
 
 ```sh
-npm install -g pillra
+pnpm install -g pillra
 # or
 bun add -g pillra
 ```
 
 ## Usage
 
-### `pillra setup [app]`
+### `pillra init <app>`
 
-Clone and apply patches. Run without an argument to set up all apps in the current directory, or pass a name to set up one.
+Scaffold a new app directory with a template `app.json`.
 
 ```sh
-pillra setup              # all apps
-pillra setup open-lavatory
+pillra init open-lavatory
 ```
 
-If the directory doesn't exist yet, pillra creates it with a template `app.json` for you to fill in.
+Fill in the `repo` and `commit` fields, then run `pillra clone`.
 
-The cloned repo lands in `.app/` inside the app directory. Subsequent runs are skipped if `.app/` already exists — delete it to re-clone.
+### `pillra clone [app]`
+
+Clone the upstream repo and apply patches into `.app/`. Run without an argument to clone all apps in the current directory.
+
+```sh
+pillra clone               # all apps
+pillra clone open-lavatory
+```
+
+Only needs to run once. `.app/` is the live patched copy you work against.
+
+### `pillra apply [app]`
+
+Re-apply patches to an existing `.app/` — no network needed. Use this after pulling updated patches from a teammate.
+
+```sh
+pillra apply               # all apps
+pillra apply open-lavatory
+```
+
+Resets `.app/` to the pinned commit and re-applies all patch files.
 
 ### `pillra edit <app>`
 
-Open an interactive shell to modify patches.
+Prepare an edit session for modifying patches.
 
 ```sh
 pillra edit open-lavatory
 ```
 
-Pillra clones the repo into `.app-edit/`, applies existing patches as commits, then drops you into a shell. Make changes and commit them — each commit becomes one patch file. Type `exit` when done; pillra regenerates the patch files and cleans up.
+Creates `.app-edit/` as a git worktree from the local `.app/` (no network), applies existing patches as commits, then prints the directory path. Make changes and commit them in `.app-edit/` using your normal tools — each commit becomes one patch file. When done, run `pillra save`.
+
+### `pillra save <app>`
+
+Finalize the edit session: regenerate patch files from commits in `.app-edit/`, then clean up.
+
+```sh
+pillra save open-lavatory
+```
+
+If a `setup` command is configured, you'll be asked whether to run it against `.app/`.
 
 ### `pillra bump <app>`
 
@@ -57,7 +86,7 @@ Advance the pinned commit to the latest upstream and re-apply patches.
 pillra bump open-lavatory
 ```
 
-Pillra resolves the latest commit on `branch`, clones it, and attempts to apply your patches. If they apply cleanly you get a shell to review before finalising. If there's a conflict, you're dropped into a shell to resolve it (`git am --continue`), then `exit`. Either way, pillra regenerates patches and updates `commit` in `app.json`.
+Fetches new commits into `.app/`, updates `commit` in `app.json`, then sets up `.app-edit/` with your patches applied on top of the new base. If patches apply cleanly, review and adjust commits as needed. If there are conflicts, resolve them (`git am --continue`) and finish remaining patches manually. Then run `pillra save`.
 
 ## app.json
 
@@ -71,17 +100,34 @@ Pillra resolves the latest commit on `branch`, clones it, and attempts to apply 
 }
 ```
 
-| Field     | Required                | Description                                      |
-|-----------|-------------------------|--------------------------------------------------|
-| `repo`    | yes                     | Git remote URL                                   |
-| `commit`  | yes                     | Full commit SHA to pin                           |
-| `branch`  | for `bump`              | Branch to resolve latest commit from             |
-| `setup`   | no                      | Command to run after cloning (e.g. install deps) |
-| `patches` | no (default: `patches`) | Directory containing `.patch` files      |
+| Field     | Required                | Description                                          |
+|-----------|-------------------------|------------------------------------------------------|
+| `repo`    | yes                     | Git remote URL                                       |
+| `commit`  | yes                     | Full commit SHA to pin                               |
+| `branch`  | for `bump`              | Branch to resolve latest commit from                 |
+| `setup`   | no                      | Command to run after cloning (you'll be prompted)    |
+| `patches` | no (default: `patches`) | Directory containing `.patch` files                  |
 
 ## Workflow
 
-1. `pillra setup <app>` — scaffold `app.json`, fill in repo + commit, run again to clone
-2. `pillra edit <app>` — make and commit changes, exit to save patches
-3. Commit `app.json` and `patches/` to your repo
-4. `pillra bump <app>` — when you want to track a newer upstream commit
+```sh
+# First time
+pillra init myapp        # scaffold app.json
+# edit myapp/app.json
+pillra clone myapp       # clone upstream → .app/
+
+# Editing patches
+pillra edit myapp        # sets up .app-edit/
+# make commits in .app-edit/
+pillra save myapp        # regenerate patches, clean up
+
+# After a teammate updates patches
+pillra apply myapp       # re-apply to .app/ instantly
+
+# Tracking a new upstream commit
+pillra bump myapp        # fetch + set up .app-edit/ at new commit
+# resolve conflicts if any
+pillra save myapp        # regenerate patches, update app.json
+```
+
+Commit `app.json` and `patches/` to your repo. Ignore `.app/` and `.app-edit/`.
