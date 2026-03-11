@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 // eslint-disable-next-line unicorn/import-style
 import * as path from "node:path";
@@ -20,18 +20,22 @@ export type App = {
 
 export const childEnv = { ...process.env, COREPACK_ENABLE_STRICT: "0" };
 
-export const run = (cmd: string, cwd: string) => {
-  execSync(cmd, { cwd, stdio: "inherit", env: childEnv });
+export const promptYesNo = (question: string): boolean => {
+  process.stdout.write(`${question} [y/N] `);
+  const answer = execSync("head -1 /dev/tty", { encoding: "utf8" }).trim()
+    .toLowerCase();
+
+  return answer === "y" || answer === "yes";
 };
 
-export const runShell = (cwd: string, appName: string) => {
-  const shell = process.env.SHELL ?? "/bin/sh";
+export const maybeRunSetup = (setupCmd: string, cwd: string) => {
+  if (promptYesNo(`  Run setup command? "${setupCmd}"`)) {
+    run(setupCmd, cwd);
+  }
+};
 
-  spawnSync(shell, [], {
-    cwd,
-    stdio: "inherit",
-    env: { ...childEnv, PS1: `(pillra:${appName}) \\w $ ` },
-  });
+export const run = (cmd: string, cwd: string) => {
+  execSync(cmd, { cwd, stdio: "inherit", env: childEnv });
 };
 
 export const loadApp = (appDir: string): App | undefined => {

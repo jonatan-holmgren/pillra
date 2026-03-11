@@ -1,9 +1,8 @@
-import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 // eslint-disable-next-line unicorn/import-style
 import * as path from "node:path";
 
-import { applyPatches, listPatches, loadApp, run, runShell } from "./shared.js";
+import { applyPatches, listPatches, loadApp, run } from "./shared.js";
 
 export const edit = (root: string, target: string) => {
   const appDir = path.resolve(root, target);
@@ -11,59 +10,31 @@ export const edit = (root: string, target: string) => {
 
   if (!app) throw new Error(`No app.json found in: ${appDir}`);
 
+  const cloneDir = path.join(app.dir, ".app");
   const editDir = path.join(app.dir, ".app-edit");
+
+  if (!existsSync(cloneDir)) {
+    throw new Error(`No local clone found. Run 'pillra clone ${target}' first.`);
+  }
 
   if (existsSync(editDir)) {
     console.log("Cleaning up previous edit session…");
-    rmSync(editDir, { recursive: true });
+    run(`git worktree remove --force ${editDir}`, cloneDir);
   }
 
-  console.log(`\nCloning ${app.config.repo} @ ${app.config.commit.slice(0, 8)}…`);
-  run(`git clone --filter=blob:none --no-checkout ${app.config.repo} .app-edit`, app.dir);
-  run(`git checkout ${app.config.commit}`, editDir);
+  run(`git worktree add --detach ${editDir} ${app.config.commit}`, cloneDir);
 
   const patches = listPatches(app.patchesDir);
 
   applyPatches(patches, app.patchesDir, editDir, true);
 
   console.log(`
-  Edit session: ${app.name}
-  Directory:    ${editDir}
+  Edit session ready: ${app.name}
+  Directory: ${editDir}
 
   Make changes and commit them with git.
-  Each commit will become one patch file.
-  Type "exit" when done.
+  Each commit becomes one patch file.
+
+  When done: pillra save ${target}
 `);
-
-  runShell(editDir, app.name);
-
-  console.log("\nRegenerating patches…");
-
-  if (existsSync(app.patchesDir)) {
-    readdirSync(app.patchesDir)
-      .filter(f => f.endsWith(".patch"))
-      .forEach(f => rmSync(path.join(app.patchesDir, f)));
-  }
-  else {
-    mkdirSync(app.patchesDir, { recursive: true });
-  }
-
-  const result = execSync(
-    `git format-patch ${app.config.commit} --output-directory ${app.patchesDir} --zero-commit --no-signature`,
-    { cwd: editDir, encoding: "utf8" },
-  ).trim();
-
-  const generated = result ? result.split("\n").map(p => path.basename(p)) : [];
-
-  if (generated.length === 0) {
-    console.log("No commits above pinned commit — patches cleared.");
-  }
-  else {
-    console.log(`Generated ${generated.length} patch(es):`);
-    generated.forEach(p => console.log(`  ${p}`));
-  }
-
-  rmSync(editDir, { recursive: true });
-
-  console.log("\nDone. Review patches, then commit them.");
 };

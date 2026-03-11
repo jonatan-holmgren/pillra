@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 // eslint-disable-next-line unicorn/import-style
 import * as path from "node:path";
 
-import { applyPatches, discoverApps, listPatches, loadApp, run } from "./shared.js";
+import { applyPatches, discoverApps, listPatches, loadApp, maybeRunSetup, run } from "./shared.js";
 
 const APP_JSON_TEMPLATE = {
   repo: "https://github.com/org/repo",
@@ -10,34 +10,70 @@ const APP_JSON_TEMPLATE = {
   branch: "main",
 };
 
-const scaffold = (dir: string, name: string) => {
-  mkdirSync(dir, { recursive: true });
+export const init = (root: string, name: string) => {
+  const dir = path.resolve(root, name);
   const configPath = path.join(dir, "app.json");
 
+  if (existsSync(configPath)) throw new Error(`${configPath} already exists.`);
+
+  mkdirSync(dir, { recursive: true });
   writeFileSync(configPath, JSON.stringify(APP_JSON_TEMPLATE, undefined, 2) + "\n");
   console.log(`Created ${configPath}`);
-  console.log(`\nFill in the repo URL and commit SHA, then run: pillra setup ${name}`);
+  console.log(`\nFill in the repo URL and commit SHA, then run: pillra clone ${name}`);
 };
 
-export const setup = (root: string, target?: string) => {
+export const apply = (root: string, target?: string) => {
   const apps = target
     ? (() => {
         const dir = path.resolve(root, target);
         const app = loadApp(dir);
 
-        if (!app) {
-          scaffold(dir, target);
-
-          return [];
-        }
+        if (!app) throw new Error(`No app.json found in: ${dir}`);
 
         return [app];
       })()
     : discoverApps(root);
 
-  if (apps.length === 0 && !target) throw new Error("No apps found.");
+  if (apps.length === 0) throw new Error("No apps found.");
 
-  if (apps.length === 0) return;
+  for (const app of apps) {
+    const cloneDir = path.join(app.dir, ".app");
+
+    console.log(`\n▶ ${app.name}`);
+
+    if (!existsSync(cloneDir)) {
+      throw new Error(`No local clone found. Run 'pillra clone ${app.name}' first.`);
+    }
+
+    console.log(`  Resetting to ${app.config.commit.slice(0, 8)}…`);
+    run(`git reset --hard ${app.config.commit}`, cloneDir);
+    run("git clean -fd", cloneDir);
+
+    const patches = listPatches(app.patchesDir);
+
+    applyPatches(patches, app.patchesDir, cloneDir);
+
+    if (app.config.setup) {
+      maybeRunSetup(app.config.setup, cloneDir);
+    }
+
+    console.log(`  ✓ Ready at ${cloneDir}`);
+  }
+};
+
+export const clone = (root: string, target?: string) => {
+  const apps = target
+    ? (() => {
+        const dir = path.resolve(root, target);
+        const app = loadApp(dir);
+
+        if (!app) throw new Error(`No app.json found in: ${dir}\n\nRun 'pillra init ${target}' to create one.`);
+
+        return [app];
+      })()
+    : discoverApps(root);
+
+  if (apps.length === 0) throw new Error("No apps found.");
 
   for (const app of apps) {
     const cloneDir = path.join(app.dir, ".app");
@@ -58,8 +94,7 @@ export const setup = (root: string, target?: string) => {
     applyPatches(patches, app.patchesDir, cloneDir);
 
     if (app.config.setup) {
-      console.log(`  Running setup: ${app.config.setup}`);
-      run(app.config.setup, cloneDir);
+      maybeRunSetup(app.config.setup, cloneDir);
     }
 
     console.log(`  ✓ Ready at ${cloneDir}`);
