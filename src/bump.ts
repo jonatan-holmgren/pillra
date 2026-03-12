@@ -51,7 +51,7 @@ export const bump = (root: string, target: string) => {
   }
 
   console.log("\nFetching new commits…");
-  run("git fetch origin", cloneDir);
+  run(`git fetch origin ${branch}`, cloneDir);
   run(`git worktree add --detach ${editDir} ${latestCommit}`, cloneDir);
 
   // Update app.json now so 'pillra save' knows the new base commit

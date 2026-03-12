@@ -20,21 +20,22 @@ export const save = (root: string, target: string) => {
 
   console.log("Regenerating patches…");
 
-  if (existsSync(app.patchesDir)) {
-    readdirSync(app.patchesDir)
-      .filter(f => f.endsWith(".patch"))
-      .forEach(f => rmSync(path.join(app.patchesDir, f)));
-  }
-  else {
-    mkdirSync(app.patchesDir, { recursive: true });
-  }
+  mkdirSync(app.patchesDir, { recursive: true });
 
+  // Run format-patch first. If it fails, existing patches are preserved
   const result = execSync(
     `git format-patch ${app.config.commit} --output-directory ${app.patchesDir} --zero-commit --no-signature`,
     { cwd: editDir, encoding: "utf8" },
   ).trim();
 
   const generated = result ? result.split("\n").map(p => path.basename(p)) : [];
+
+  // Remove stale patches that weren't regenerated
+  const generatedSet = new Set(generated);
+
+  readdirSync(app.patchesDir)
+    .filter(f => f.endsWith(".patch") && !generatedSet.has(f))
+    .forEach(f => rmSync(path.join(app.patchesDir, f)));
 
   if (generated.length === 0) {
     console.log("No commits above pinned commit — patches cleared.");
@@ -47,7 +48,7 @@ export const save = (root: string, target: string) => {
   run(`git worktree remove --force ${editDir}`, cloneDir);
 
   if (app.config.setup) {
-    maybeRunSetup(app.config.setup, cloneDir);
+    maybeRunSetup(app.config.setup, app.dir);
   }
 
   console.log("\nDone. Review patches, then commit them.");

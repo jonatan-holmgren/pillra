@@ -53,7 +53,7 @@ export const loadApp = (appDir: string): App | undefined => {
 export const discoverApps = (root: string): App[] => readdirSync(root, { withFileTypes: true })
   .filter(d => d.isDirectory() && d.name !== "node_modules")
   .map(d => loadApp(path.join(root, d.name)))
-  .filter((a): a is App => a !== null);
+  .filter((a): a is App => a !== undefined);
 
 export const listPatches = (patchesDir: string): string[] => {
   if (!existsSync(patchesDir)) return [];
