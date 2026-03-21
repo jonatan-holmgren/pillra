@@ -54,7 +54,7 @@ export const apply = (root: string, target?: string) => {
     applyPatches(patches, app.patchesDir, cloneDir);
 
     if (app.config.setup) {
-      maybeRunSetup(app.config.setup, app.dir);
+      maybeRunSetup(app.config.setup, app.dir, cloneDir);
     }
 
     console.log(`  ✓ Ready at ${cloneDir}`);
@@ -94,7 +94,7 @@ export const clone = (root: string, target?: string) => {
     applyPatches(patches, app.patchesDir, cloneDir);
 
     if (app.config.setup) {
-      maybeRunSetup(app.config.setup, app.dir);
+      maybeRunSetup(app.config.setup, app.dir, cloneDir);
     }
 
     console.log(`  ✓ Ready at ${cloneDir}`);

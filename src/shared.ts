@@ -28,9 +28,13 @@ export const promptYesNo = (question: string): boolean => {
   return answer === "y" || answer === "yes";
 };
 
-export const maybeRunSetup = (setupCmd: string, cwd: string) => {
+export const maybeRunSetup = (setupCmd: string, appDir: string, cloneDir: string) => {
   if (promptYesNo(`  Run setup command? "${setupCmd}"`)) {
-    run(setupCmd, cwd);
+    const resolvedCmd = setupCmd.startsWith(".")
+      ? path.resolve(appDir, setupCmd)
+      : setupCmd;
+
+    run(resolvedCmd, cloneDir);
   }
 };
 
